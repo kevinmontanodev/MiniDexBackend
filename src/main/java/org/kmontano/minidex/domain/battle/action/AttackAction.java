@@ -9,6 +9,20 @@ import org.kmontano.minidex.domain.battle.event.AttackEventDTO;
 import org.kmontano.minidex.domain.battle.event.BattleEventDTO;
 import org.kmontano.minidex.dto.shared.BattlePokemon;
 
+/**
+ * Battle action representing an attack performed by a Pokémon.
+ *
+ * <p>This action resolves the attack using AttackResolutionService
+ * and generates the corresponding battle events.</p>
+ *
+ * Possible outcomes:
+ * - Miss
+ * - Normal hit
+ * - Critical hit
+ * - Pokémon faint
+ *
+ * If the defender reaches 0 HP, a FAINT event is generated.
+ */
 public class AttackAction implements BattleAction {
     private final Move move;
     private final BattleSide side;
