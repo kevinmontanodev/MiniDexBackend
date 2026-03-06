@@ -10,6 +10,23 @@ import org.springframework.stereotype.Component;
 
 import java.util.concurrent.ThreadLocalRandom;
 
+/**
+ * Service responsible for resolving attack mechanics.
+ *
+ * <p>This class determines if an attack hits, calculates type effectiveness,
+ * applies STAB bonuses, and determines critical hits.</p>
+ *
+ * Damage calculation itself is delegated to DamageCalculator.
+ *
+ * Flow:
+ * 1. Validate accuracy
+ * 2. Determine hit or miss
+ * 3. Calculate type effectiveness
+ * 4. Apply STAB bonus
+ * 5. Calculate base damage
+ * 6. Apply critical modifiers
+ * 7. Return AttackResult
+ */
 @Component
 public class AttackResolutionService {
     private static final double CRIT_CHANCE = 0.0625;

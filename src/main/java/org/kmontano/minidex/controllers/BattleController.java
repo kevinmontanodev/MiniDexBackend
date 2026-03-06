@@ -12,6 +12,23 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * REST controller responsible for handling battle-related endpoints.
+ *
+ * <p>This controller exposes the public API used by the frontend
+ * to interact with the battle system.</p>
+ *
+ * Main responsibilities:
+ * - Start a new battle session
+ * - Process battle turns
+ * - Allow the trainer to surrender
+ *
+ * The controller does not contain battle logic. All game rules
+ * and turn resolution are delegated to {@link BattleFacade}.
+ *
+ * Authentication is required for all endpoints in order to
+ * associate battles with a specific trainer.
+ */
 @RestController
 @RequestMapping("/api/${api.version}/battle")
 public class BattleController {
@@ -57,6 +74,4 @@ public class BattleController {
 
         return ResponseEntity.ok(response);
     }
-
-
 }

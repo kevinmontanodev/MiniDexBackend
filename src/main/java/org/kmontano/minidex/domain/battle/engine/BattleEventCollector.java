@@ -6,6 +6,16 @@ import org.springframework.stereotype.Component;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Collects battle events generated during a turn.
+ *
+ * <p>Actions executed by the battle engine produce events
+ * such as ATTACK, FAINT, FINISH_BATTLE, STRATEGIC_SWITCH or SWITCH. This collector stores
+ * them in the correct order so they can be sent to the frontend.</p>
+ *
+ * The frontend processes these events sequentially to trigger
+ * battle animations and UI updates.
+ */
 @Component
 public class BattleEventCollector {
     private final List<BattleEventDTO> events = new ArrayList<>();

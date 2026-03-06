@@ -5,7 +5,21 @@ import org.kmontano.minidex.dto.shared.BattlePokemon;
 
 import java.util.List;
 
-// pepe empezamos
+/**
+ * Represents the current state of an active battle.
+ *
+ * <p>This object contains all the information required to resolve
+ * battle actions and track the progress of the fight.</p>
+ *
+ * Contains:
+ * - Player active Pokémon
+ * - Enemy active Pokémon
+ * - teams
+ * - Battle status
+ * - Turn related data
+ *
+ * This object is mutable and updated during the battle lifecycle.
+ */
 @Data
 public class BattleContext {
     private String battleId;

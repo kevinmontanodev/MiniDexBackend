@@ -12,6 +12,22 @@ import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Stream;
 
+/**
+ * Core engine responsible for executing battle turns.
+ *
+ * <p>This class coordinates the execution of actions from both the player
+ * and the enemy. It determines the execution order based on speed and
+ * resolves the resulting battle events.</p>
+ *
+ * Responsibilities:
+ * - Determine action order
+ * - Execute actions
+ * - Collect battle events
+ * - Update the battle context
+ *
+ * The engine does not decide actions; it only executes them.
+ * Enemy decisions are delegated to EnemyAiDecisionService.
+ */
 @Component
 public class BattleEngine {
     public void executeTurn(BattleContext context, BattleAction playerAction, BattleAction enemyAction, BattleEventCollector collector){
