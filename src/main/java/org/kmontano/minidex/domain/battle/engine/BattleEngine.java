@@ -1,6 +1,6 @@
 package org.kmontano.minidex.domain.battle.engine;
 
-import org.kmontano.minidex.domain.battle.BattleAction;
+import org.kmontano.minidex.domain.battle.action.BattleAction;
 import org.kmontano.minidex.domain.battle.model.BattleSide;
 import org.kmontano.minidex.domain.battle.action.SwitchAction;
 import org.kmontano.minidex.domain.battle.model.BattleContext;
