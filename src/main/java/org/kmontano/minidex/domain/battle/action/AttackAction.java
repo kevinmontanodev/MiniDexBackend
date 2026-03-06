@@ -1,10 +1,12 @@
 package org.kmontano.minidex.domain.battle.action;
 
-import org.kmontano.minidex.domain.battle.*;
+import org.kmontano.minidex.domain.battle.model.AttackResult;
 import org.kmontano.minidex.domain.battle.model.BattleContext;
+import org.kmontano.minidex.domain.battle.model.BattleSide;
+import org.kmontano.minidex.domain.battle.service.AttackResolutionService;
 import org.kmontano.minidex.domain.pokemon.Move;
-import org.kmontano.minidex.dto.response.AttackEventDTO;
-import org.kmontano.minidex.dto.response.BattleEventDTO;
+import org.kmontano.minidex.domain.battle.event.AttackEventDTO;
+import org.kmontano.minidex.domain.battle.event.BattleEventDTO;
 import org.kmontano.minidex.dto.shared.BattlePokemon;
 
 public class AttackAction implements BattleAction {
