@@ -1,130 +1,916 @@
 # Minidex API
 
-Minidex API está orientada al sector del entretenimiento y coleccionismo digital, permitiendo gestionar entrenadores y sus Pokémon de forma sencilla y segura.
+MiniDex API is a backend service designed for a **digital Pokémon collecting and battling game**.
+It allows players (trainers) to collect Pokémon, build teams, battle against an AI opponent, and manage their Pokédex.
 
-API REST desarrollada con Spring Boot para la gestión de entrenadores y Pokémon.
-Esta API permite crear y administrar entrenadores, así como capturar, consultar y eliminar Pokémon de su Pokédex.
+The API is built with **Spring Boot** and uses **MongoDB (cloud-hosted)** as its primary database.
 
-Incluye:
-
-- Registro y autenticación de entrenadores con JWT.
-- Gestión de información de entrenadores: nombre, username, monedas y nivel.
-- Captura, actualización y eliminación de Pokémon asociados a cada entrenador.
-- Endpoints REST claros y seguros, con validaciones y manejo de errores consistente.
-- Integración con H2 en memoria para pruebas y desarrollo rápido.
-
-Cada entrenador puede capturar múltiples Pokémon, y cada Pokémon puede pertenecer a varios entrenadores, simulando una Pokédex compartida.
-
-Los Pokémon son obtenidos desde la PokeAPI y luego almacenados en la base de datos local.
-Al capturarse, el sistema valida si el Pokémon y sus tipos existen previamente; en caso contrario, los crea y asocia correctamente.
-De esta forma, se mantiene una base de datos optimizada y coherente, evitando duplicados y gestionando las relaciones many-to-many entre entrenadores y Pokémon.
+The system focuses on performance, scalability, and a clean architecture that separates **domain logic, application services, and infrastructure concerns.**
 
 ------------------------------------------------------------------------
 
-## 📂 Arquitectura del Proyecto
+## Overview
+MiniDex combines elements of **collection, progression, and strategic battles**.
+
+Players can:
+
+- Register and authenticate as trainers
+- Open booster packs to obtain Pokémon
+- Build a team of 6 Pokémon
+- Battle against an AI opponent
+- Earn coins and experience
+- Level up and evolve their Pokémon
+- Purchase packs or special Pokémon from the shop
+
+The game loop encourages players to **collect, train, and improve their teams** over time.
+
+------------------------------------------------------------------------
+
+## Core Features 
+
+### Trainer Management
+The API allows trainers to manage their profile and progress within the game.
+
+Trainer information includes:
+
+- Name
+- Username
+- Level
+- Coins
+- Pokédex collection
+- Daily pack availability
+- Shop state
+
+Authentication is handled using **JWT (JSON Web Tokens)** to secure protected endpoints.
+
+------------------------------------------------------------------------
+
+## Pokémon Collection System
+
+Pokémon are obtained through **booster packs**.
+
+Each trainer receives:
+
+- **3 free packs per day**
+- Each pack contains **3 Pokémon**
+
+Additionally, the shop offers:
+
+- Purchasable booster packs
+- A **daily special Pokémon** available for purchase
+
+Coins used in the shop can be earned by:
+
+- Transferring Pokémon
+- Winning battles
+
+------------------------------------------------------------------------
+
+## Pokémon Generation and Caching
+
+MiniDex integrates with the public **PokéAPI** to retrieve Pokémon data.
+
+However, to improve performance and reduce API calls, the system uses a **two-stage approach**:
+
+**Pack Pokémon (Lightweight Objects)**
+
+When generating booster packs, the API uses cached **Pack Pokémon** objects.
+
+These objects contain only minimal information:
+
+- Pokémon name
+- Image sprite
+- Shiny status
+- Rarity
+
+This allows packs to be generated **very quickly without repeated external API calls.**
+
+### Full Pokémon Objects
+
+Once a trainer opens a pack, the system generates the **full Pokémon objects in the background** and stores them in the trainer's Pokédex.
+
+These objects include:
+
+- Stats
+- Types
+- Moves
+- Evolution data
+- And more usefully data
+
+This approach significantly improves responsiveness when opening packs.
+
+------------------------------------------------------------------------
+
+## Battle System
+
+MiniDex includes a **turn-based battle system** where trainers fight against an AI-controlled opponent.
+
+Each trainer can create a **team of up to 6 Pokémon** and battle against enemy teams generated dynamically.
+
+Winning battles rewards players with:
+
+- Coins
+- Experience points
+- Pokémon level progression
+
+When a Pokémon reaches **Level 5**, it becomes eligible for evolution.
+
+Evolution costs **100 coins** and upgrades the Pokémon to its next stage.
+
+------------------------------------------------------------------------
+
+## Event-Based Battle Engine
+
+The battle engine uses an **event-driven architecture** to process combat interactions.
+
+Instead of returning only a final result, the battle system generates a sequence of battle events that represent everything that happened during the turn.
+
+Examples of events include:
+
+- `ATTACK`
+- `FAINT`
+- `SWITCH`
+- `STRATEGIC_SWITCH`
+- `FINISH_BATTLE`
+
+This approach provides several advantages:
+
+- Efficient server-side battle processing
+- Clear battle state tracking
+- Smooth animation handling in the frontend
+
+The frontend consumes these events sequentially to animate the battle in real time.
+
+------------------------------------------------------------------------
+
+## Architecture
+The project follows a **layered architecture inspired by Domain-Driven Design principles.**
+
+The main layers include:
+
+### Domain Layer
+
+Contains the **core business logic of the game**, including:
+
+- Battle engine
+- Damage calculations
+- Pokémon models
+- Evolution logic
+- AI decision systems
+
+This layer is completely independent of frameworks.
+
+### 📂 Arquitectura del Proyecto
 
 ``` text
 src/
 ├── main/
 │   ├── java/org/kmontano/minidex/
-|   |   ├── auth/
-│   │   │   └── JwtFilter.java
-|   |   ├── config/
-|   |   |   ├── CorsConfig.java
-|   |   |   ├── SecurityConfig.java
+│   │   ├── application
+│   │   │   └── BattleFacade.java
+│   │   ├── service
+│   │   │   ├── AuthService.java
+│   │   │   ├── BattleSessionService.java
+│   │   │   ├── DailyPackService.java
+│   │   │   ├── EvolutionService.java
+│   │   │   ├── PokedexService.java
+│   │   │   ├── PokemonStoreService.java
+│   │   │   ├── PokemonTypeCacheService.java
+│   │   │   ├── RewardService.java
+│   │   │   └── TrainerService.java
+│   │   ├── serviceImpl
+│   │   │   ├── AuthServiceImpl.java
+│   │   │   ├── BattleSessionServiceImpl.java
+│   │   │   ├── DailyPackServiceImpl.java
+│   │   │   ├── EvolutionServiceImpl.java
+│   │   │   ├── PokedexServiceImpl.java
+│   │   │   ├── PokemonStoreServiceImpl.java
+│   │   │   ├── PokemonTypeCacheServiceImpl.java
+│   │   │   ├── RewardServiceImpl.java
+│   │   │   └── TrainerServiceImpl.java
+│   │   ├── auth/
+│   │   │   ├── AuthUtils.java
+│   │   │   ├── JwtFilter.java
+│   │   │   └── JwtUtil.java
+│   │   ├── config/
+│   │   │   ├── AdminApiKeyFilter.java
+│   │   │   ├── CorsConfig.java
+│   │   │   ├── EncoderBean.java
+│   │   │   ├── JacksonConfig.java
+│   │   │   ├── RestTemplateConfig.java
+│   │   │   ├── SecurityConfig.java
 │   │   │   └── SwaggerConfig.java
 │   │   ├── controllers/
 │   │   │   ├── AuthController.java
+│   │   │   ├── BattleController.java
 │   │   │   ├── PokemonController.java
 │   │   │   └── TrainerController.java
+│   │   ├── domain/
+│   │   │   ├── battle/
+│   │   │   │   ├── action
+│   │   │   │   │   ├── AttackAction.java
+│   │   │   │   │   ├── BattleAction.java
+│   │   │   │   │   └── SwitchAction.java
+│   │   │   │   ├── calculator
+│   │   │   │   │   └── DamageCalculator.java
+│   │   │   │   ├── engine
+│   │   │   │   │   ├── BattleEngine.java
+│   │   │   │   │   ├── BattleEventCollector.java
+│   │   │   │   │   ├── BattleFinisher.java
+│   │   │   │   │   ├── BattleInitializer.java
+│   │   │   │   │   ├── BattleStateEvaluator.java
+│   │   │   │   │   ├── TimedBattle.java
+│   │   │   │   │   └── TypeEffectivenessCalculator.java
+│   │   │   │   ├── event
+│   │   │   │   │   ├── AttackEventDTO.java
+│   │   │   │   │   ├── BattleEventDTO.java
+│   │   │   │   │   ├── FaintEventDTO.java
+│   │   │   │   │   ├── FinishEventDTO.java
+│   │   │   │   │   ├── StrategicSwitchEventDTO.java
+│   │   │   │   │   └── SwitchEventDTO.java
+│   │   │   │   ├── model
+│   │   │   │   │   ├── AttackResult.java
+│   │   │   │   │   ├── BattleContext.java
+│   │   │   │   │   ├── BattleEventTypes.java
+│   │   │   │   │   ├── BattleLogEntry.java
+│   │   │   │   │   ├── BattleSide.java
+│   │   │   │   │   ├── BattleStatus.java
+│   │   │   │   │   ├── BattleTurn.java
+│   │   │   │   │   └── HitResult.java
+│   │   │   │   └── service
+│   │   │   │       └── AttackResolutionService.java
+│   │   │   ├── enemy/
+│   │   │   │   ├── decision/
+│   │   │   │   │   ├── AiDecision.java
+│   │   │   │   │   ├── SwitchCandidateSelector.java
+│   │   │   │   │   └── SwitchDecisionPolicy.java
+│   │   │   │   ├── factory/
+│   │   │   │   │   └── EnemyTeamFactory.java
+│   │   │   │   ├── service/
+│   │   │   │   │   └── EnemyAiDecisionService.java
+│   │   │   │   ├── EnemyAiService.java
+│   │   │   │   └── EnemyBattleState.java
+│   │   │   ├── pokedex/
+│   │   │   │   └── Pokedex.java
+│   │   │   ├── pokemon/
+│   │   │   │   ├── Move.java
+│   │   │   │   ├── NextEvolution.java
+│   │   │   │   ├── Pokemon.java
+│   │   │   │   ├── PokemonType.java
+│   │   │   │   ├── PokemonTypeCache.java
+│   │   │   │   ├── PokemonTypeRef.java
+│   │   │   │   ├── Rarity.java
+│   │   │   │   ├── RarityMapper.java
+│   │   │   │   ├── Sprites.java
+│   │   │   │   └── Stats.java
+│   │   │   ├── pokemonShop/
+│   │   │   │   └── TrainerShopState.java
+│   │   │   └── trainer/
+│   │   │       ├── DailyPackStatus.java
+│   │   │       └── Trainer.java
 │   │   ├── dto/
-│   │   │   ├── AuthRequest.java
-│   │   │   ├── AuthResponse.java
-│   │   │   ├── LoginRequest.java
-│   │   │   ├── PokemonDTO.java
-│   │   │   ├── TrainerDTO.java
-│   │   │   ├── UpdateCoinsRequest.java
-│   │   │   └── UpdateNameAndUsernameRequest.java
+│   │   │   ├── request/
+│   │   │   │   ├── AuthRequest.java
+│   │   │   │   ├── BattleTurnRequest.java
+│   │   │   │   ├── LoginRequest.java
+│   │   │   │   ├── PlayerActionRequest.java
+│   │   │   │   └── UpdateNameAndUsernameRequest.java
+│   │   │   ├── response/ #most importants
+│   │   │   │   ├── AuthResponse.java
+│   │   │   │   ├── BattleTurnResponse.java
+│   │   │   │   ├── BoosterResponseDTO.java
+│   │   │   │   ├── EvolutionPokemonResponse.java
+│   │   │   │   ├── PokedexDTO.java
+│   │   │   │   ├── PokemonDTO.java
+│   │   │   │   ├── PokemonStoreDTO.java
+│   │   │   │   ├── StartBattleResponse.java
+│   │   │   │   └── TrainerDTO.java
+│   │   │   └── shared/
+│   │   │   │   ├── ActionType.java
+│   │   │   │   ├── BattlePokemon.java
+│   │   │   │   └── BattleReward.java
 │   │   ├── exception/
-│   │   │   └── GlobalExceptionHandler.java
-│   │   ├── models/
-│   │   │   ├── Pokemon.java
-│   │   │   ├── PokemonType.java
-│   │   │   └── Trainer.java
-│   │   ├── repositories/
-│   │   │   ├── PokemonRepository.java
-│   │   │   ├── TrainerRepository.java
-│   │   │   └── TypeRepository.java
-│   │   ├── services/
-│   │   │   ├── PokemonService.java
-│   │   │   ├── PokemonServiceImpl.java
-│   │   │   ├── TrainerService.java
-│   │   │   └── TrainerServiceImpl.java
-│   │   ├── utils/
-│   │   │   ├── AuthUtils.java
-│   │   │   ├── JwtUtil.java
-│   │   │   └── PasswordEncoder.java
+│   │   │   ├── DomainConflictException.java
+│   │   │   ├── DomainException.java
+│   │   │   ├── DomainValidationException.java
+│   │   │   ├── EnvelopeLimitReachedException.java
+│   │   │   ├── GlobalExceptionHandler.java
+│   │   │   └── ResourceNotFoundException.java
+│   │   ├── factory/
+│   │   │   ├── MoveFactory.java
+│   │   │   ├── PackPokemonFactory.java
+│   │   │   └── PokemonFactory.java
+│   │   ├── infrastructure/
+│   │   │   ├── api/
+│   │   │   │   ├── dto/
+│   │   │   │   │   ├── Generationlx.java
+│   │   │   │   │   ├── ScarletViolet.java
+│   │   │   │   │   ├── TypeApiResponse.java
+│   │   │   │   │   └── TypeSprites.java
+│   │   │   │   └── PokemonApiClient.java
+│   │   │   ├── cache/
+│   │   │   │   ├── CacheAdminController.java
+│   │   │   │   ├── PackPokemonCache.java
+│   │   │   │   ├── PackPokemonCacheRepository.java
+│   │   │   │   └── PackPokemonCacheService.java
+│   │   │   ├── mapper/ # most importants
+│   │   │   │   ├── ChainLink.java
+│   │   │   │   ├── EvolutionChain.java
+│   │   │   │   ├── Home.java
+│   │   │   │   ├── Species.java
+│   │   │   │   └── Sprites.java
+│   │   │   └── repository/
+│   │   │       ├── PokedexRepository.java
+│   │   │       ├── PokemonTypeCacheRepository.java
+│   │   │       ├── TrainerRepository.java
+│   │   │       └── TrainerShopStateRepository.java
 │   │   └── MinidexApplication.java
 │   └── resources/
 │       ├── application.properties
-└── test/
-    └── java/org/kmontano/minidex/
-        ├── AuthIntegrationTest.java
-        ├── MinidexApplicationTests.java
-        ├── PokemonController.java
-        └── TrainerController.java
 ```
 
 ------------------------------------------------------------------------
 
-## Modelo de Datos
+## Application Layer
 
-| Entidad         | Atributo | Tipo          | Descripción                      |
-| --------------- | -------- | ------------- | -------------------------------- |
-| **Trainer**     | id       | Long          | Identificador único              |
-|                 | name     | String        | Nombre del entrenador            |
-|                 | username | String        | Nombre de usuario único          |
-|                 | password | String        | Contraseña hasheada              |
-|                 | coins    | Integer       | Monedas del jugador              |
-|                 | level    | Integer       | Nivel del jugador                |
-|                 | pokemons | List<Pokemon> | Lista de Pokémon capturados      |
-| **Pokemon**     | id       | Long          | Identificador único              |
-|                 | name     | String        | Nombre del Pokémon               |
-|                 | image    | String        | Imagen del Pokémon               |
-|                 | hp       | Integer       | Valor de vida                    |
-|                 | defense  | Integer       | Valor de defensa                 |
-|                 | attack   | Integer       | Valor de ataque                  |
-|                 | speed    | Integer       | Valor de velocidad               |
-|                 | leve;    | Integer       | Nivel del Pokemon                |
-|                 | type     | List<PokemonType> | Tipo de Pokémon              |
-| **PokemonType** | id       | Long          | Identificador del tipo           |
-|                 | name     | String        | Tipo (agua, fuego, planta, etc.) |
+Coordinates domain logic through **facades and services.**
+
+Responsibilities include:
+
+- Managing battle sessions
+- Processing trainer actions
+- Handling rewards and progression
+- Coordinating evolution and pack opening
+
+------------------------------------------------------------------------
+
+## Infrastructure Layer
+
+Handles integration with external systems and technical concerns such as:
+
+- MongoDB repositories
+- PokéAPI client
+- caching systems
+- external data mapping
+
+------------------------------------------------------------------------
+
+## Presentation Layer
+
+The API exposes functionality through **REST controllers**, which serve as entry points for the frontend application.
+
+Controllers handle:
+
+- Request validation
+- Authentication
+- DTO transformations
+- Error handling
+
+------------------------------------------------------------------------
+
+## Security
+
+MiniDex uses **JWT-based authentication** to secure its endpoints.
+
+The authentication system includes:
+
+- Login and registration
+- JWT token generation
+- JWT validation filters
+- Spring Security configuration
+
+Protected endpoints require a valid JWT token in the request headers.
+
+------------------------------------------------------------------------
+
+## Error Handling
+
+The API implements a **centralized exception handling system** using a global exception handler.
+
+Custom exceptions include:
+
+- ResourceNotFoundException
+- DomainValidationException
+- DomainConflictException
+- EnvelopeLimitReachedException
+
+This ensures that API responses remain **consistent and predictable.**
+
+------------------------------------------------------------------------
+
+## Data Model (MongoDB)
+
+MiniDex uses **MongoDB** as its main persistence layer.
+
+Core collections include:
+
+# Trainers
+
+Stores trainer profiles and progression data.
+
+Example structure:
+
+``` json
+{
+  "id": string,
+  "name": string,
+  "username": string,
+  "coins": number,
+  "level": number,
+  "xp" : number,
+  "wins": number,
+  "loses": number,
+  "dailyPackStatus": {
+    "numEnvelopes": number,
+    "lastResetDate": string
+  }
+}
+```
 
 
- 
 
-Relación:\
-`Trainer (N) ---- (N) Pokemon`
-`Pokemon (N) ---- (N) PokemonType`
+Pokémon
 
-![ENTIDAD_RELACION](./docs/entidadRelacionMiniDex.png)
+Pokémon are stored as embedded objects within a trainer's Pokédex.
 
+Each Pokémon contains:
+```json
+{
+    "uuid": string,
+    "numPokedex": number,
+    "name": number,
+    "rarity": string,
+    "sprites": {
+        "smallFront": string,
+        "smallBack": string,
+        "mainImage": string
+    },
+    "shiny": boolean,
+    "level": number,
+    "nextEvolution": string,
+    "stats": {
+        "hp": number,
+        "attack": number,
+        "defense": number,
+        "speed": number
+    },
+  "types": [
+    {
+      "name": string,
+      "iconUrl": string
+    }
+  ],
+  "moves": [
+    {
+        "moveName": string,
+        "type": string,
+        "power": number,
+        "accuracy": number
+    }
+  ],
+  "canEvolve": boolean
+}
+```
 
+- stats
+- moves
+- type references
+- shiny status
+- level
+- evolution data
+
+This structure allows trainers to manage their collections efficiently without complex relational joins.
+
+------------------------------------------------------------------------
+
+## Performance Considerations
+
+Several strategies were implemented to improve performance:
+
+- Pokémon type caching
+- Pack Pokémon caching
+- Background Pokémon generation
+- Event-based battle responses
+
+These optimizations reduce external API calls and improve response times during gameplay.
+
+------------------------------------------------------------------------
+
+## Battle Engine Architecture
+
+The battle system in **MiniDex** is implemented using an **event-driven battle engine** designed to be deterministic, extensible, and optimized for frontend animation.
+
+Instead of returning only the final battle state, the engine produces a sequence of battle events that represent everything that happened during a turn. These events allow the frontend to render animations such as attacks, damage, switches, and fainting in the correct order.
+
+The battle engine is composed of several core components:
+
+- `BattleInitializer`
+- `BattleEngine`
+- `AttackResolutionService`
+- `BattleEventCollector`
+- `BattleFinisher`
+
+------------------------------------------------------------------------
+## Battle Lifecycle
+
+A battle follows the lifecycle below:
+
+- Battle Initialization
+- Turn Execution
+- Event Generation
+- Battle State Evaluation
+- Battle Finish
+
+------------------------------------------------------------------------
+## Battle Initialization
+
+The `BattleInitializer` is responsible for preparing the battle context.
+
+It retrieves the trainer's team from the Pokédex and generates a random enemy team using the `EnemyTeamFactory`.
+
+```java
+BattleContext context = new BattleContext(
+    playerTeam.get(0),
+    enemyTeam.get(0),
+    playerTeam,
+    enemyTeam,
+    trainerId
+);
+```
+
+The initializer validates that the player has a **full team of 6 Pokémon** before allowing the battle to start.
+
+The resulting `BattleContext` contains:
+
+- active player Pokémon
+- active enemy Pokémon
+- both teams
+- trainer identifier
+- battle status
+
+This context acts as the **single source of truth** for the battle state.
+
+------------------------------------------------------------------------
+## Battle Context
+
+The `BattleContext` class represents the entire battle state.
+
+It stores:
+
+- active Pokémon for each side
+- the full teams
+- the trainer id
+- battle status
+
+It also provides utility methods to evaluate the state of the battle:
+```java
+public boolean isPlayerDefeated();
+public boolean isEnemyDefeated();
+```
+
+These methods determine if **all Pokémon on a team have fainted**, which ends the battle.
+
+The context also exposes switching operations:
+```java
+switchPlayer();
+switchEnemy();
+```
+------------------------------------------------------------------------
+## Turn Execution
+
+Each turn is executed by the `BattleEngine`.
+
+The engine receives:
+
+- player action
+- enemy action
+- battle context
+- event collector
+
+```java
+executeTurn(context, playerAction, enemyAction, collector);
+```
+
+The engine performs three main steps:
+
+### 1. Action Ordering
+
+Actions are sorted based on:
+
+1. Action priority
+2. Pokémon speed
+3. Random tie-breaker
+
+```java
+.sorted((a,b) -> {
+    int priorityCompare = Integer.compare(b.getPriority(), a.getPriority());
+```
+
+This replicates mechanics similar to the original Pokémon games where some actions (like switching) have higher priority.
+
+------------------------------------------------------------------------
+### 2. Validity Checks
+
+Before executing an action, the engine verifies if the Pokémon is still able to act.
+
+For example, if a Pokémon fainted earlier in the same turn, its action is skipped unless the action is a switch.
+
+------------------------------------------------------------------------
+
+3. Action Execution
+
+Each action executes itself using the **Command pattern**.
+
+```java
+BattleEventDTO event = action.execute(context);
+```
+
+The resulting event is then stored in the event collector.
+
+------------------------------------------------------------------------
+## Event Driven System
+
+Instead of mutating the UI directly, the battle engine produces **events** that describe what happened during the turn.
+
+These events are stored in the `BattleEventCollector`.
+```java
+collector.add(event);
+```
+
+At the end of the turn, the events are returned to the frontend.
+
+------------------------------------------------------------------------
+## Battle Events
+
+The system defines several event types:
+
+| Event	|             Description              |
+| :--- | :---: |
+| `ATTACK` |    	A Pokémon performed an attack    |
+| `FAINT`	|          A Pokémon fainted           |
+| `SWITCH` |       	Player switched Pokémon       |
+| `STRATEGIC_SWITCH` |       	Enemy switched Pokémon        |
+| `FINISH_BATTLE` | 	Battle finished and rewards granted |
+
+All events extend the base class:
+```java
+abstract class BattleEventDTO
+```
+
+Each event contains the information required by the frontend to animate the action.
+
+------------------------------------------------------------------------
+
+## Attack Event
+
+Represents a successful or failed attack.
+
+Information included:
+
+- attacking side
+- move name
+- damage dealt
+- HP before and after
+- effectiveness multiplier
+- hit result (normal or critical)
+
+Example structure:
+```json
+{
+    "type": "ATTACK",
+    "side": "PLAYER",
+    "moveName": "thunderbolt",
+    "damage": 34,
+    "effectiveness": 2.0
+}
+```
+
+------------------------------------------------------------------------
+## Faint Event
+
+Triggered when a Pokémon reaches 0 HP.
+```json
+{
+  "type": "FAINT",
+  "side": "ENEMY",
+  "pokemonId": "uuid"
+}
+```
+
+------------------------------------------------------------------------
+## Switch Event
+
+Occurs when a Pokémon is replaced with another one from the team.
+
+Two types of switch events exist in the system:
+
+- `SWITCH` → Standard switch triggered after a Pokémon faints.
+- `STRATEGIC_SWITCH` → Tactical switch performed intentionally by the enemy AI or player.
+
+### Faint Switch (Standard Switch)
+
+When a Pokémon faints, it must be replaced by another Pokémon from the team.  
+This type of switch **does not consume the turn**.
+
+The behavior differs depending on the side:
+
+- **Player:** the system waits for the frontend to select the next Pokémon.
+- **Enemy:** the replacement Pokémon is selected automatically by the AI.
+
+This ensures that fainting does not unfairly cost a turn.
+
+### Strategic Switch
+
+A `STRATEGIC_SWITCH` is a tactical decision made by the enemy AI or player during battle.
+
+Unlike faint switches, this action **does consume the turn**, since it is treated as a normal battle action and follows the turn ordering rules.
+
+This allows the AI or player to switch Pokémon when it detects disadvantageous conditions, such as:
+
+- low HP
+- type disadvantage
+- unfavorable battle state
+
+------------------------------------------------------------------------
+## Finish Battle Event
+
+Generated when the battle ends.
+
+This event includes:
+
+- coins earned
+- experience gained
+- level up information
+- victory or defeat
+
+Example:
+```json
+{
+  "type": "FINISH_BATTLE",
+  "coins": 120,
+  "xpEarned": 50,
+  "levelUp": true,
+  "playerWin": true
+}
+```
+------------------------------------------------------------------------
+Attack Resolution
+
+Attack resolution is handled by the `AttackResolutionService`.
+
+The attack process follows several steps:
+
+1. Accuracy check
+2. Type effectiveness calculation
+3. STAB bonus
+4. Base damage calculation
+5. Critical hit calculation
+6. Final damage output
+
+------------------------------------------------------------------------
+## Damage Formula
+
+The damage formula is implemented in `DamageCalculator`.
+```java
+((2 * level / 5 + 2) * power * attack / defense) / 50 + 2
+```
+
+The result is then modified by:
+
+- type effectiveness
+- STAB multiplier
+- critical hit
+- internal balancing multiplier
+
+This simplified formula allows battles to remain **fast while preserving core Pokémon mechanics**.
+
+------------------------------------------------------------------------
+## Type Effectiveness
+
+Type interactions are handled by `TypeEffectivenessCalculator`.
+
+The system stores effectiveness rules in a static lookup table:
+```java
+Map<PokemonType, Map<PokemonType, Double>>
+```
+
+Multipliers include:
+
+| Multiplier |	Meaning |
+| :--- | :---: |
+| `2.0`	| Super effective |
+| `0.5` |	Not very effective |
+| `1.0` |	Neutral |
+
+When a defender has **multiple types**, multipliers are combined.
+
+------------------------------------------------------------------------
+## Critical Hits
+
+Critical hits are calculated with a probability system.
+
+Default values:
+
+- 6.25% chance for a critical hit
+- 1.5x damage multiplier
+
+Some critical hits may also trigger a **lucky bonus multiplier**.
+
+------------------------------------------------------------------------
+## Battle Expiration
+
+Battles are wrapped inside a `TimedBattle`.
+```java
+public boolean isExpired()
+```
+
+A battle automatically expires after **30 minutes**.
+
+This prevents abandoned battle sessions from persisting indefinitely.
+
+------------------------------------------------------------------------
+
+## Battle Rewards
+
+When a battle ends, the `BattleFinisher` handles the final logic.
+
+It performs several operations:
+
+1. Calculates rewards
+2. Applies coins and experience to the trainer
+3. Updates the Pokédex team levels
+4. Records wins or losses
+5. Generates the `FINISH_BATTLE` event
+
+Example reward structure:
+
+- coins
+- experience
+- trainer level progression
+- Pokémon level increases
+
+------------------------------------------------------------------------
+Why Event-Driven Battles?
+
+This architecture was chosen for several reasons:
+
+### Frontend animation support
+
+The frontend receives a **timeline of events**, allowing it to animate:
+
+- attacks
+- damage
+- fainting
+- switches
+- rewards
+
+in the correct order.
+
+------------------------------------------------------------------------
+## Clear battle state transitions
+
+Events act as **explicit state transitions**, making debugging easier.
+
+------------------------------------------------------------------------
+## Extensibility
+
+New mechanics can be introduced easily, such as:
+
+- status effects
+- abilities
+- weather
+- new move types
+
+without rewriting the battle engine.
 
 ------------------------------------------------------------------------
 
 
+## ⚙️ API Endpoints
+All endpoints are prefixed with:
+```text
+/api/v1
+```
 
-## ⚙️ Endpoints
+Unless otherwise specified, endpoints require JWT authentication via:
+```text
+Authorization: Bearer <token>
+```
 
-### 🔹 Auth Controller
+------------------------------------------------------------------------
 
-#### Registra un nuevo entrenador y devuelve un token JWT junto con los datos del usuario.
+## Authentication
+### Register Trainer
 
-**POST** `/auth/register`\
-**Body:**
+Creates a new trainer account and returns an authentication token.
 
-``` json
+### POST
+```text
+/auth/register
+```
+
+### Request
+```json
 {
   "name": "Ash Ketchum",
   "username": "ash",
@@ -132,527 +918,753 @@ Relación:\
 }
 ```
 
-**Respuesta:**
-``` json
+### Response `200`
+```json
 {
-    "token": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhc2giLCJpYXQiOjE3NjAwNjIzNzIsImV4cCI6MTc2MDE0ODc3Mn0.hSKFBzHzJM2CJYCV_Gu0BmPkMyqGSti9Fgnic0Zj4to",
-    "trainerDTO": {
-        "id": 1,
-        "name": "Ash Ketchum",
-        "username": "ash",
-        "level": 1,
-        "coins": 250,
-        "pokedex": []
-    }
-}
-```
-#### Códigos de respuesta:
-`201 Created`: Entrenador creado exitosamente.\
-`409 Conflict`: El nombre de usuario ya existe.
-
-![POST](./docs/auth_register.png)
-
-### Login de usuario (Entrenadores)
-
-**POST** `/auth/login`\
-**Body:**
-
-``` json
-{
-  "username": "ash",
-  "password": "pikachu123"
-}
-```
-
-**Respuesta:**
-``` json
-{
-    "token": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhc2giLCJpYXQiOjE3NjAwNjI1NjgsImV4cCI6MTc2MDE0ODk2OH0.khkOIHdggb_AG0rUwPOwOQPkhINHvoVCr_2UOWQ2Mgo",
-    "trainerDTO": {
-        "id": 1,
-        "name": "Ash Ketchum",
-        "username": "ash",
-        "level": 1,
-        "coins": 250,
-        "pokedex": []
-    }
-}
-```
-#### Códigos de respuesta:
-`200 OK`: Entrenador creado exitosamente.\
-`401 Unauthorized`: El nombre de usuario ya existe.
-
-![POST](./docs/auth_login.png)
-
-
-------------------------------------------------------------------------
-
-### 🔹 Trainer Controller
-
-
-#### Obtener la data del entrenador
-
-**GET** `/trainers/me`
-
-**Respuesta:**
-
-``` json
-{
-    "id": 1,
+  "token": "jwt_token",
+  "trainerDTO": {
     "name": "Ash Ketchum",
     "username": "ash",
     "level": 1,
-    "coins": 250,
-    "pokedex": []
-}
-```
-#### Códigos de respuesta:
-`200 OK`: Entrenador encontrado.\
-`401 Unauthorized`: No esta autorizado.\
-`404 Not Found`: Entrenador no encontrado.
-
-#### Requiere el token
-![GET](./docs/get_trainer.png)
-
-#### Capturar un Pokémon
-
-**POST** `/trainers/me/pokedex`\
-**Body:**
-``` json
-{
-  "name": "articuno",
-  "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/home/144.png",
-  "hp": 90,
-  "attack": 85,
-  "defense": 100,
-  "speed": 125,
-  "level" : 1,
-  "types": [
-        {
-            "name" : "ice"
-        },
-        {
-            "name" : "flying"
-        }
-    ]
-}
-```
-
-**Respuesta:**
-
-``` json
-{
-    "id": 1,
-    "name": "articuno",
-    "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/home/144.png",
-    "hp": 90,
-    "attack": 85,
-    "defense": 100,
-    "speed": 125,
-    "types": [
-        "ice",
-        "flying"
-    ]
-}
-```
-#### Códigos de respuesta:
-`200 OK`: Pokemon Agregado a la pokedex.\
-`401 Unauthorized`: No esta authorizado.\
-`404 Not Found`: Entrenador no encontrado.
-
-#### Requiere el token
-![POST](./docs/post_trainer_addPokemon.png)
-
-
-#### obtener la pokedex del entrenador
-
-**GET** `/trainers/me/pokedex`
-
-**Respuesta:**
-
-``` json
-[
-    {
-        "id": 1,
-        "name": "articuno",
-        "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/home/144.png",
-        "hp": 90,
-        "attack": 85,
-        "defense": 100,
-        "speed": 125,
-        "types": [
-            "ice",
-            "flying"
-        ]
+    "xp": 0,
+    "coins": 500,
+    "wins": 0,
+    "loses": 0,
+    "dailyPackStatus": {
+      "numEnvelopes": 3,
+      "lastResetDate": "2026-02-02"
     }
-]
+  }
+}
 ```
-
-
-#### Actualizar name o username
-
-**PUT** `/trainers/me`\
-**Body:**
-``` json
+### Error `409`
+```json
 {
-    "name" :"Ash Ketchum",
-    "username" : "ash97"
+  "message": "Username already exists"
 }
 ```
 
-**Respuesta:**
-``` json
+------------------------------------------------------------------------
+
+## Login
+
+Authenticates an existing trainer and returns a JWT token.
+
+### POST
+```text
+/auth/login
+```
+
+### Request
+```json
 {
-    "token": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhc2g5NyIsImlhdCI6MTc2MDA2NDg5NywiZXhwIjoxNzYwMTUxMjk3fQ.wbxJjFyAAGEhL-aO8qnbI8uA1TflGXtK_QHTzzPN9Mc",
+    "username": "ash",
+    "password": "pikachu123"
+}
+```
+
+### Response `200`
+```json
+{
+    "token": "jwt_token",
     "trainerDTO": {
-        "id": 1,
         "name": "Ash Ketchum",
-        "username": "ash97",
+        "username": "ash",
         "level": 1,
-        "coins": 250,
-        "pokedex": [
-            {
-                "id": 1,
-                "name": "articuno",
-                "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/home/144.png",
-                "hp": 90,
-                "attack": 85,
-                "defense": 100,
-                "speed": 125,
-                "types": [
-                    "ice",
-                    "flying"
-                ]
-            }
-        ]
+        "xp": 0,
+        "coins": 500,
+        "wins": 0,
+        "loses": 0,
+      "dailyPackStatus": {
+        "numEnvelopes": 3,
+        "lastResetDate": "2026-02-02"
+      }
     }
 }
 ```
-#### Códigos de respuesta:
-`200 OK`: Datos Actualizados conexito.\
-`401 Unauthorized`: No esta authorizado.\
-`404 Not Found`: Entrenador no encontrado.
 
-#### Requiere token
-### Nota: Copie el nuevo token para realizar las demas peticiones 
-![PUT](./docs/put_trainer_nameAndUsername.png)
-
-
-
-#### Actualizar coins del trainer action puede ser "add" o "subtract" si es add suma las monedas si es subtract las resta
-**PUT** `/trainers/me/coins`\
-**Body:**
-``` json
+### Error `409`
+```json
 {
-  "action": "add",
-  "coins": 100
+  "message": "Invalid credentials"
+}
+```
+------------------------------------------------------------------------
+## Trainer Endpoints
+
+Base path:
+```text
+/trainers/me
+```
+
+------------------------------------------------------------------------
+
+## Get Trainer Profile
+
+Returns the authenticated trainer information.
+
+### GET
+```text
+/trainers/me
+```
+### Response
+```json
+{
+  "name": "Ash Ketchum",
+  "username": "ash",
+  "level": 1,
+  "xp": 0,
+  "coins": 500,
+  "wins": 0,
+  "loses": 0,
+  "dailyPackStatus": {
+    "numEnvelopes": 3,
+    "lastResetDate": "2026-02-02"
+  }
 }
 ```
 
-**Respuesta:**
-``` json
+------------------------------------------------------------------------
+## Update Trainer Profile
+
+Updates trainer name or username.
+
+### PUT
+```text
+/trainers/me
+```
+
+### Request
+```json
 {
-    "id": 1,
-    "name": "Ash Ketchum",
-    "username": "ash97",
-    "level": 2,
-    "coins": 400,
+    "name": "Pueblo Paleta",
+    "username": "ash"
+}
+```
+
+### Response
+
+Returns a new JWT token.
+```json
+{
+"token": "new_token",
+    "trainerDTO": {
+        "name": "Pueblo Paleta",
+        "username": "ash",
+        "level": 1,
+        "xp": 0,
+        "coins": 500,
+        "wins": 0,
+        "loses": 0,
+        "dailyPackStatus": {
+            "numEnvelopes": 3,
+            "lastResetDate": "2026-02-02"
+        }
+    }
+}
+```
+------------------------------------------------------------------------
+## Pokédex
+### Get Pokédex
+
+Returns the trainer's Pokémon collection and current team.
+
+### GET
+```text
+/trainers/me/pokedex
+```
+
+### Response Example
+```json
+
+{
+  "pokemonTeam": [],
     "pokedex": [
-        {
-            "id": 1,
-            "name": "articuno",
-            "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/home/144.png",
-            "hp": 90,
-            "attack": 85,
-            "defense": 100,
-            "speed": 125,
-            "types": [
-                "ice",
-                "flying"
-            ]
-        }
-    ]
-}
-```
-#### Códigos de respuesta:
-`200 Ok`: Monedas actualizadas correctamente.\
-`401 Unauthorized`: No esta authorizado.\
-`403 Bad Request`: No tiene monedas suficientes (para comprar) o Accion no encontrada
-
-#### Requiere token
-![PATCH](./docs/patch_trainer_coins.png)
-
-
-
-**DELETE** `/trainers/me/pokedex/{pokemonId}`\
-``` text
-/trainers/me/pokedex/1
-```
-
-#### Códigos de respuesta:
-`204 No Content`: El pokemon se elimino correctamente de la pokedex \
-`401 Unauthorized`: No esta authorizado.\
-`404 Not Found`: Entrenador no encontrado | El pokemon no esta en la Pokedex del entrenador.
-
-**Respuesta:**
-![DELETE](./docs/delete_trainer_pokemon.png)
-
-
-
-------------------------------------------------------------------------
-
-### 🔹 Pokémon Controller
-
-#### Obtener todos los Pokémon
-
-**GET** `/pokemons`\
-**Respuesta:**
-
-``` json
-[
-    {
-        "id": 1,
-        "name": "articuno",
-        "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/home/144.png",
-        "hp": 90,
-        "attack": 85,
-        "defense": 100,
-        "speed": 125,
+      {
+        "uuid": "2b4c08fb-c5df-4b38-b81c-98eeb56886fe",
+        "numPokedex": 135,
+        "name": "jolteon",
+        "rarity": "UNCOMMON",
+        "sprites": {
+          "smallFront": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/135.gif",
+          "smallBack": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/back/135.gif",
+          "mainImage": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/home/135.png"
+        },
+        "shiny": false,
+        "level": 1,
+        "nextEvolution": null,
+        "stats": {
+          "hp": 65,
+          "attack": 65,
+          "defense": 60,
+          "speed": 130
+        },
         "types": [
-            "ice",
-            "flying"
-        ]
+          {
+            "name": "electric",
+            "iconUrl": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/types/generation-ix/scarlet-violet/13.png"
+          }
+        ],
+        "moves": [
+          {
+            "moveName": "tera-blast",
+            "type": "NORMAL",
+            "power": 80,
+            "accuracy": 100
+          },
+          {
+            "moveName": "growl",
+            "type": "NORMAL",
+            "power": null,
+            "accuracy": 100
+          },
+          {
+            "moveName": "skull-bash",
+            "type": "NORMAL",
+            "power": 130,
+            "accuracy": 100
+          },
+          {
+            "moveName": "confide",
+            "type": "NORMAL",
+            "power": null,
+            "accuracy": null
+          }
+        ],
+        "canEvolve": false
+      }
+    ]
+}
+```
+
+Full Pokémon objects include:
+
+- stats
+- types
+- moves
+- sprites
+- evolution data
+
+------------------------------------------------------------------------
+## Daily Packs
+### Check Daily Packs
+
+Returns the trainer's available daily packs.
+
+### GET
+```text
+/trainers/me/daily-packs
+```
+
+### Response
+```json
+{
+  "numEnvelopes": 3,
+  "lastResetDate": "2026-02-02"
+}
+
+```
+
+------------------------------------------------------------------------
+## Open Daily Pack
+
+Opens a free daily booster pack.
+
+### POST
+```text
+/trainers/me/daily-packs/open
+```
+### Response
+
+Each pack contains **3 Pokémon**.
+```json
+{
+  "pokemons": [
+    {
+      "name": "jolteon",
+      "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/home/135.png",
+      "shiny": false,
+      "rarity": "UNCOMMON"
+    },
+    {
+      "name": "starmie",
+      "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/home/121.png",
+      "shiny": false,
+      "rarity": "UNCOMMON"
+    },
+    {
+      "name": "sentret",
+      "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/home/161.png",
+      "shiny": false,
+      "rarity": "COMMON"
     }
-]
+  ]
+}
 ```
-#### Códigos de respuesta:
-`200 OK`: Exito listando los pokemons \
-`401 Unauthorized`: No esta authorizado.
-
-#### Requiere el token
-![GET](./docs/get_pokemons.png)
-
-#### Crear un Pokémon
-
-**POST** `/pokemons`\
-**Body:**
-
-``` json
+### Error `409`
+```json
 {
-  "name": "lugia",
-  "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/home/249.png",
-  "hp": 106,
-  "attack": 90,
-  "defense": 130,
-  "speed": 110,
-  "types": [
-        {
-            "name" : "fire"
-        },
-        {
-            "name" : "bug"
-        },
-        {
-            "name" : "flying"
-        }
-    ]
+  "message": "Daily envelope limit already reached"
 }
 ```
 
-**Respuesta:**
+------------------------------------------------------------------------
 
-``` json
+## Team Management
+### Get Team
+
+Returns the trainer's active battle team.
+
+### GET
+```text
+/trainers/me/team
+```
+### Response
+```json
 {
-    "id": 2,
-    "name": "lugia",
-    "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/home/249.png",
-    "hp": 106,
-    "attack": 90,
-    "defense": 130,
-    "speed": 110,
+  "team": []
+}
+```
+
+Maximum team size: **6 Pokémon**
+
+------------------------------------------------------------------------
+## Add Pokémon to Team
+
+Adds a Pokémon from the Pokédex to the battle team.
+
+### POST
+```text
+/trainers/me/team
+```
+
+### Request
+```json
+{
+  "pokemonId": "64356388-f83e-4b85-91ab-643035d5c3a0"
+}
+```
+
+### Response `200`
+
+### Errors
+```json
+{
+  "message": "Pokemon is not in the Pokedex"
+}
+```
+```json
+{
+  "message": "Pokemon is already in the team"
+}
+```
+
+------------------------------------------------------------------------
+## Remove Pokémon from Team
+
+### DELETE
+```text
+/trainers/me/team/{pokemonId}
+```
+
+### Response `204 No Content`
+
+### Errors
+```json
+{
+  "message": "Pokemon is not in the team"
+}
+```
+------------------------------------------------------------------------
+## Remove Pokémon from Pokedex
+
+### DELETE
+```text
+/trainers/me/pokedex/{pokemonId}
+```
+
+It returns the coins and XP obtained from the transfer, as well as the trainer level.
+### Response `200`
+```json
+{
+  "level": 1,
+  "xp": 34,
+  "coins": 284
+}
+```
+
+### Errors
+```json
+{
+  "message": "Pokemon is not in pokedex"
+} 
+```
+------------------------------------------------------------------------
+## Pokémon Evolution
+
+Allows a Pokémon to evolve if it meets the requirements.
+
+### POST
+```text
+/trainers/me/pokemons/{pokemonId}/evolution
+```
+### Requirements
+
+- Pokémon level ≥ 15
+- Trainer must have 100 coins
+
+### Response
+```json
+{
+  "coins": 400,
+  "xp": 100,
+  "level": 1,
+  "evolvedPokemon": {
+    "uuid": "64356388-f83e-4b85-91ab-643035d5c3a0",
+    "numPokedex": 162,
+    "name": "furret",
+    "rarity": "COMMON",
+    "sprites": {
+      "smallFront": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/162.gif",
+      "smallBack": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/back/162.gif",
+      "mainImage": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/home/162.png"
+    },
+    "shiny": false,
+    "level": 15,
+    "nextEvolution": null,
+    "stats": {
+      "hp": 85,
+      "attack": 76,
+      "defense": 64,
+      "speed": 90
+    },
     "types": [
-        "fire",
-        "bug",
-        "flying"
-    ]
+      {
+        "name": "normal",
+        "iconUrl": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/types/generation-ix/scarlet-violet/1.png"
+      }
+    ],
+    "moves": [
+      {
+        "moveName": "grass-knot",
+        "type": "GRASS",
+        "power": null,
+        "accuracy": 100
+      },
+      {
+        "moveName": "echoed-voice",
+        "type": "NORMAL",
+        "power": 40,
+        "accuracy": 100
+      },
+      {
+        "moveName": "me-first",
+        "type": "NORMAL",
+        "power": null,
+        "accuracy": null
+      },
+      {
+        "moveName": "whirlpool",
+        "type": "WATER",
+        "power": 35,
+        "accuracy": 85
+      }
+    ],
+    "canEvolve":false
+  }
 }
 ```
-#### Códigos de respuesta:
-`201 Created`: pokemons creado con exito \
-`403 Bad Request`: No se pudo crear el pokemon\
-`401 Unauthorized`: No esta authorizado.
 
-#### Requiere token
-![POST](./docs/post_pokemon.png)
+### Error `409`
+```json
+{
+  "message": "Pokemon can't evolve"
+}
+```
+------------------------------------------------------------------------
+## Pokémon Shop
+### Get Shop Information
+
+Returns the daily shop configuration.
+
+### GET
+```text
+/shop
+```
+
+### Response
+```json
+{
+    "specialPokemon": {
+        "name": "mr-mime",
+        "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/home/shiny/122.png",
+        "shiny": true,
+        "rarity": "UNCOMMON"
+    },
+    "specialPokemonPrice": 200,
+    "specialPokemonPurchased": false,
+    "boosterPrice": 200,
+    "boostersRemaining": 3
+}
+```
+
+------------------------------------------------------------------------
+## Buy Booster Pack
+
+### POST
+```text
+/trainers/me/booster-packs
+```
+
+### Response
+```json
+{
+  "pokemons": [
+    {
+      "name": "tentacruel",
+      "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/home/73.png",
+      "shiny": false,
+      "rarity": "UNCOMMON"
+    },
+    {
+      "name": "dragonair",
+      "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/home/148.png",
+      "shiny": false,
+      "rarity": "UNCOMMON"
+    },
+    {
+      "name": "hitmontop",
+      "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/home/237.png",
+      "shiny": false,
+      "rarity": "UNCOMMON"
+    }
+  ]
+}
+```
+
+### Error
+```json
+{
+  "message": "Daily booster limit reached"
+}
+```
+
+------------------------------------------------------------------------
+## Buy Special Pokémon
+
+### POST
+```text
+/trainers/me/pokemon
+```
+
+### Response
+```json
+{
+    "coins": 200,
+    "xp": 300,
+    "level": 1
+}
+```
+
+### Errors
+```json
+{
+  "message": "Special pokemon already purchased today"
+}
+```
+```json
+{
+  "message": "You don't have enough coins"
+}
+```
+
+------------------------------------------------------------------------
+## Battle System
+### Start Battle
+
+Creates a new battle session.
+
+### POST
+```text
+/battle/start
+```
+
+### Response
+```json
+{
+    "battleId": "2173c4c3-ec98-4456-bbed-418daf5563a6",
+    "status": "IN_PROGRESS",
+    "enemyName": "Team Rocket"
+}
+```
+
+The response also includes:
+
+- current player Pokémon
+- enemy Pokémon
+- player team
 
 ------------------------------------------------------------------------
 
-## Configuración de Base de Datos (H2)
+## Battle Turn
 
-Archivo `application.properties`:
+Processes a battle action.
 
-``` properties
-spring.application.name=minidex
-
-frontend.url=http://localhost:4321
-
-spring.datasource.url=jdbc:h2:mem:minidexdb
-spring.datasource.driverClassName=org.h2.Driver
-spring.datasource.username=sa
-spring.datasource.password=password
-
-spring.jpa.database-platform=org.hibernate.dialect.H2Dialect
-spring.jpa.hibernate.ddl-auto=update
-spring.sql.init.mode=always
-spring.jpa.defer-datasource-initialization=true
-
-spring.h2.console.enabled=true
-spring.h2.console.path=/h2-console
+### POST
+```text
+/battle/turn
 ```
 
-Acceso a consola H2:\
-👉 <http://localhost:8080/h2-console>
+### Request
+```json
+{
+    "battleId": "2173c4c3-ec98-4456-bbed-418daf5563a6",
+    "pokemonUuid": "47fa0e94-cd22-4227-ba98-24b13d3c781f",
+    "moveName": "acrobatics",
+    "action": "ATTACK"
+}
+```
+
+### Response
+
+Returns the updated battle state and the events generated during the turn.
+```json
+{
+  "battleId": "2173c4c3-ec98-4456-bbed-418daf5563a6",
+  "status": "IN_PROGRESS",
+  "player": {
+    "pokemonId": "47fa0e94-cd22-4227-ba98-24b13d3c781f",
+    "maxHp": 90,
+    "currentHp": 90,
+    "fainted": false
+  },
+  "enemy": {
+    "pokemonId": "b143cd51-994e-4142-a0b1-1274c3ebe414",
+    "maxHp": 60,
+    "currentHp": 60,
+    "fainted": false
+  },
+  "events": [
+    {
+      "type": "ATTACK",
+      "hit": true,
+      "side": "PLAYER",
+      "hitResult": "NORMAL",
+      "moveName": "acrobatics",
+      "moveType": "FLYING",
+      "damage": 100,
+      "hpBefore": 90,
+      "hpAfter": 0,
+      "effectiveness": 2.0
+    },
+    {
+      "type": "FAINT",
+      "side": "ENEMY",
+      "pokemonId": "33c9b79d-a026-404b-830f-3cc40cf2b59e"
+    },
+    {
+      "type": "SWITCH",
+      "side": "ENEMY",
+      "newPokemon": {
+        "pokemonId": "b143cd51-994e-4142-a0b1-1274c3ebe414",
+        "name": "raichu",
+        "maxHp": 60,
+        "currentHp": 60,
+        "sprites": {
+          "smallFront": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/shiny/26.gif",
+          "smallBack": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/back/shiny/26.gif",
+          "mainImage": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/home/shiny/26.png"
+        },
+        "attack": 90,
+        "defense": 55,
+        "speed": 110,
+        "level": 1,
+        "moves": [
+          {
+            "moveName": "rest",
+            "type": "PSYCHIC",
+            "power": null,
+            "accuracy": null
+          },
+          {
+            "moveName": "mimic",
+            "type": "NORMAL",
+            "power": null,
+            "accuracy": null
+          },
+          {
+            "moveName": "calm-mind",
+            "type": "PSYCHIC",
+            "power": null,
+            "accuracy": null
+          },
+          {
+            "moveName": "thunder-punch",
+            "type": "ELECTRIC",
+            "power": 75,
+            "accuracy": 100
+          }
+        ],
+        "types": [
+          "ELECTRIC"
+        ],
+        "fainted": false
+      }
+    }
+  ]
+}
+```
+
+Events may include:
+
+- `ATTACK`
+- `FAINT`
+- `SWITCH`
+- `STRATEGIC_SWITCH`
+- `FINISH_BATTLE`
+
+### Errors
+```json
+{
+  "message": "Your Pokémon has fainted, you must switch"
+}
+```
 
 ------------------------------------------------------------------------
 
-## 🚀 Ejecución
+## Surrender Battle
 
-### Instrucciones para probar el proyecto
+Ends the current battle session.
 
-- Contenido del paquete
-    - El archivo comprimido contiene:
-        - Backend (H2 / Java): la API del proyecto con todas las rutas y configuraciones necesarias.
-        - Frontend (Astro / React): aplicación web para interactuar con la API.
-    - Se incluyen los archivos necesarios para correr cada parte de forma independiente.
-
-- Requisitos previos
-    - Java 17+
-    - Node.js 18+
-    - Navegador web moderno (Chrome, Edge, Firefox)
-    - Herramienta opcional: Postman para probar la API directamente
-
-- Configuración del backend
-    - Descomprimir el paquete del backend.
-    - Abrir un terminal en la carpeta del proyecto.
-    - Ejecutar el comando:
-
-```bash
-./mvnw spring-boot:run
-```
-`O puede habrirlo y ejecutarlo en un IDE como IntelliJ IDEA`\
-
-Esto iniciará la API en http://localhost:8080
-
-- La base de datos H2 corre en memoria. Para acceder a la consola web:
-    - URL: http://localhost:8080/h2-console
-    - JDBC URL: jdbc:h2:mem:minidexdb
-    - Usuario: sa
-    - Contraseña: password
-
-- Probar la API
-    - Opción A: Usando Postman
-        - Abrir Postman y crear una nueva colección.
-        - Usar las rutas disponibles
-Asegurarse de que la API esté corriendo antes de hacer cualquier petición.
-
-    - Opción B: Usando el frontend (Astro / React)
-        - Descomprimir el paquete del frontend.
-        - Abrir un terminal en la carpeta del proyecto.
-    - Instalar dependencias:
-```bash
-npm install
+### POST
+```text
+/battle/{battleId}/surrender
 ```
 
-- Iniciar el servidor de desarrollo:
-
-```bash
-npm run dev
+### Response `200 OK`
+### Error
+```json
+{
+  "message": "Battle already finished"
+}
 ```
-    
-- Abrir la URL indicada en la terminal (por defecto http://localhost:3000) para interactuar con la API.
-
-
-## Desde Github
-### Backend (API)
-- Clonar el proyecto backend:
-```bash
-git clone https://github.com/KevinU20221275/MiniDexBackend.git
-cd MiniDexBackend
-```
-- Compilar y ejecutar con Maven:
-```bash
-mvn spring-boot:run
-```
-La API estará disponible en:
-👉 http://localhost:8080
-
-### Frontend (Astro + React)
-- Clonar el proyecto frontend
-```bash
-git clone https://github.com/KevinU20221275/MiniDexFrontEnd.git
-cd MiniDexFrontEnd
-```
-- instalar dependencias
-```bash
-npm install
-```
-
-- iniciar el servidor de desarrollo
-```bash
-npm run dev
-```
-Abrir la URL indicada en la terminal (por defecto):
-👉 http://localhost:4321
-
-## Notas importantes
-- Todas las rutas de la API funcionan tanto desde Postman como desde la interfaz web.
-- La base de datos H2 es temporal (en memoria). Cada vez que se reinicie la aplicación, se perderán los datos creados en la sesión anterior.
-- Todos los endpoint a excepcion de `auth/register`, `auth/login` requieren el token de acceso
-- El token de acceso se proporciona en los 2 endpoints antes mensionados
 
 ------------------------------------------------------------------------
+## Error Format
 
-## 🧪 Tests
-
-Este proyecto incluye tests automatizados para asegurar que las funcionalidades principales funcionan correctamente.
-
-### Controladores testeados:
-
-- TrainerController: pruebas de agregar un pokemon a la pokedex, agregar monedas, remover pokemon de la pokedex.
-- PokemonController: pruebas de endpoints relacionados con los Pokémon (crear, listar).
-- AuthController: pruebas de autenticación, registro de usuarios y registro de un usuario duplicado.
-
-### Tipos de tests incluidos:
-
-- Unitarios: verifican la lógica de los servicios y métodos de cada controlador.
-- De integración: prueban la interacción completa con el contexto de Spring Boot y la base de datos en memoria (H2).
-
-### Frameworks utilizados:
-
-- JUnit 5
-- Spring Boot Test
-- Mockito
-
-### Ejecutar los tests:
-```bash
-# Con Maven
-./mvnw test
+All API errors follow a consistent format:
+```json
+{
+  "message": "Error description"
+}
 ```
 
-![TEST](./docs/tests.png)
+Common HTTP codes:
 
------------------------------------------------------------------------
-
-## Tecnologías Usadas
-
--   Java 17\
--   Spring Boot 3\
--   Maven\
--   H2 Database\
-
+| Code	| Meaning |
+| :--- | :---: |
+| 200	| Success |
+| 204	| No content |
+| 404	| Resource not found |
+| 409	| Business rule conflict |
 ------------------------------------------------------------------------
-
-## 👨‍💻 Autor
-
-Desarrollado por **Kevin Antonio Montano Aquino** ⚡\
-📅 *Proyecto académico en Kodigo Academina JD22 - 2025*
