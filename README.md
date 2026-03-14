@@ -1017,10 +1017,7 @@ Returns the authenticated trainer information.
   "coins": 500,
   "wins": 0,
   "loses": 0,
-  "dailyPackStatus": {
-    "numEnvelopes": 3,
-    "lastResetDate": "2026-02-02"
-  }
+  "caughtPokemons": 12
 }
 ```
 
@@ -1078,8 +1075,7 @@ Returns the trainer's Pokémon collection and current team.
 ```json
 
 {
-  "pokemonTeam": [],
-    "pokedex": [
+  "pokemons": [
       {
         "uuid": "2b4c08fb-c5df-4b38-b81c-98eeb56886fe",
         "numPokedex": 135,
@@ -1133,7 +1129,10 @@ Returns the trainer's Pokémon collection and current team.
         ],
         "canEvolve": false
       }
-    ]
+    ],
+  "page": 0,
+  "totalPages": 1,
+  "totalElements": 1
 }
 ```
 
