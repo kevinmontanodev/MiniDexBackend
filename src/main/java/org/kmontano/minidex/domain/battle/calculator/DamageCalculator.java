@@ -21,7 +21,7 @@ import org.kmontano.minidex.dto.shared.BattlePokemon;
  */
 public class DamageCalculator {
     public static int calculate(BattlePokemon attacker, BattlePokemon defender, Move move, double effectiveness, double stab){
-        int balanceMultiplier = 4;
+        int balanceMultiplier = 2;
         int level = attacker.getLevel();
         int power = move.getPower() != null ? move.getPower() : 20;
 
