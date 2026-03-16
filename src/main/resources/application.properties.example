@@ -1,0 +1,13 @@
+spring.application.name=minidex
+
+frontend.url=http://localhost:4321
+api.version=v1
+
+spring.data.mongodb.uri=mongodb+srv://username:password@cluster.mongodb.net/minidex
+spring.data.mongodb.database=minidex
+spring.data.mongodb.auto-index-creation=true
+
+admin.api.key=your_admin_key
+
+jwt.secret=your_jwt_secret
+jwt.expiration=86400000
