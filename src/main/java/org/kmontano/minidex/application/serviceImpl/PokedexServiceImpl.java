@@ -173,7 +173,7 @@ public class PokedexServiceImpl implements PokedexService {
         repository.save(pokedex);
         trainerRepository.save(trainer);
 
-        return new TransferPokemonResponse(trainer);
+        return new TransferPokemonResponse(trainer, coins);
     }
 
     /**

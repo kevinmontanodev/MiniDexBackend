@@ -8,10 +8,12 @@ public class TransferPokemonResponse {
     private int level;
     private int xp;
     private int coins;
+    private int coinsReceived;
 
-    public TransferPokemonResponse(Trainer trainer) {
+    public TransferPokemonResponse(Trainer trainer, int coinsReceived) {
         this.level = trainer.getLevel();
         this.xp = trainer.getXp();
         this.coins = trainer.getCoins();
+        this.coinsReceived = coinsReceived;
     }
 }
