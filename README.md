@@ -1667,3 +1667,225 @@ Common HTTP codes:
 | 404	| Resource not found |
 | 409	| Business rule conflict |
 ------------------------------------------------------------------------
+
+## Configuration
+
+The backend application is configured using a **Spring configuration file**.
+
+In this repository the configuration is provided through:
+```text
+application.properties
+```
+
+For security reasons, the repository includes an example configuration file:
+```text
+application.properties.example
+```
+
+Developers should copy the example file and provide their own values.
+
+Example configuration:
+```text
+spring.application.name=minidex
+
+frontend.url=http://localhost:4321
+api.version=v1
+
+spring.data.mongodb.uri=mongodb+srv://username:password@cluster.mongodb.net/minidex
+spring.data.mongodb.database=minidex
+spring.data.mongodb.auto-index-creation=true
+
+admin.api.key=your_admin_key
+
+jwt.secret=your_jwt_secret
+jwt.expiration=86400000
+```
+
+------------------------------------------------------------------------
+
+## Configuration Properties
+### Application
+| Property | Description |
+| :------  | -------: |
+| `spring.application.name` | Name of the application |
+| `api.version` |	Version prefix used for API routes |
+
+Example:
+```text
+/api/v1/...
+```
+
+------------------------------------------------------------------------
+
+## Frontend Integration
+| Property | Description |
+| :------  | -------: |
+| `frontend.url` | URL used for CORS configuration |
+
+Example:
+```text
+http://localhost:4321
+```
+
+------------------------------------------------------------------------
+
+## Database Configuration
+
+The application uses:
+
+- MongoDB
+
+Required properties:
+
+| Property | Description |
+| :------  | -------: |
+| `spring.data.mongodb.uri` | MongoDB connection string |
+| `spring.data.mongodb.database` | Database name |
+| `spring.data.mongodb.auto-index-creation` | Enables automatic index creation |
+
+------------------------------------------------------------------------
+
+## Authentication 
+
+The API uses JWT authentication.
+
+| Property | Description |
+| :------  | -------: |
+| `jwt.secret` | Secret used to sign tokens |
+| `jwt.expiration` | Token expiration time in milliseconds |
+
+------------------------------------------------------------------------
+
+## Admin Security
+
+Certain administrative endpoints require an Admin API Key.
+
+| Property	      |                              Description |
+|:---------------|-----------------------------------------:|
+| `admin.api.key` |  Key used to access admin-only endpoints |
+
+The key must be sent in the request header:
+```text
+X-ADMIN-KEY
+```
+
+------------------------------------------------------------------------
+
+## Running the Application
+
+The backend can be started using **two different methods**.
+
+## Option 1 — Run with Docker (Recommended)
+
+The project includes a **Dockerfile** that builds the application and runs it inside a container.
+
+Technologies used:
+
+- Docker
+- Apache Maven
+- Spring Boot
+
+### Build the image
+```bash
+docker build -t minidex-api .
+```
+### Run the container
+```bash
+docker run -p 8080:8080 minidex-api
+```
+
+The API will be available at:
+```text
+http://localhost:8080
+```
+
+## Option 2 — Run with Maven
+
+Developers can also run the application locally using Maven.
+
+### Install dependencies
+```bash
+mvn clean install
+```
+### Run the application
+```bash
+mvn spring-boot:run
+```
+
+The application will start on:
+```text
+http://localhost:8080
+```
+------------------------------------------------------------------------
+
+## Dockerfile Overview
+
+The Dockerfile uses a **multi-stage** build to produce a lightweight runtime container.
+
+### Build Stage
+
+The first stage uses Maven to compile the project and generate the application JAR.
+```dockerfile
+FROM maven:3.9.9-eclipse-temurin-17 AS builder
+```
+
+Steps performed:
+
+- download dependencies
+- compile the project
+- generate the final `.jar` file
+
+### Runtime Stage
+
+The second stage runs the application using a lightweight Java runtime.
+```dockerfile
+FROM eclipse-temurin:17-jdk
+```
+
+The compiled JAR is copied into the container and executed.
+```dockerfile
+ENTRYPOINT ["java", "-jar", "/app/app.jar"]
+```
+
+The container exposes port:
+```text
+8080
+```
+
+------------------------------------------------------------------------
+
+## Required Initialization
+
+After starting the backend, the Pokémon cache must be preloaded before the application can generate packs.
+
+This process fetches Pokémon data from:
+
+- PokéAPI
+
+and stores it in the internal cache collection.
+
+To start the preload process:
+```bash
+curl -X POST http://localhost:8080/api/v1/admin/cache/preload \
+-H "X-ADMIN-KEY: your_admin_key"
+```
+
+This will populate the Pokémon cache used by the pack generation system.
+
+------------------------------------------------------------------------
+
+## Related Repositories
+
+Application logic and detailed documentation can be found in the following repositories:
+
+Full Stack Aplication Repository (minidex-deploy)
+https://github.com/kevinmontanodev/minidex-deploy
+
+Frontend Repository
+https://github.com/kevinmontanodev/MiniDexFrontEnd
+
+Those repositories contain detailed documentation about:
+
+- Full application stack ready to be used witch docker
+- Frontend architecture
+- Game mechanics
