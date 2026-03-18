@@ -200,9 +200,9 @@ public class TrainerController {
      */
     @PostMapping("/pokemons/{pokemonId}/evolution")
     public ResponseEntity<EvolutionPokemonResponse> evolutionPokemon(@PathVariable String pokemonId, Authentication authentication){
-        System.out.println("LLego la peticion: ......")
+        System.out.println("LLego la peticion: ......");
         
-        System.out.println("Pokemon id: " + pokemonId)
+        System.out.println("Pokemon id: " + pokemonId);
         Trainer trainer = AuthUtils.getAuthenticatedTrainer(authentication);
 
         return ResponseEntity.ok(pokedexService.evolutionPokemon(trainer, pokemonId));
@@ -217,7 +217,7 @@ public class TrainerController {
      */
     @DeleteMapping("/team")
     public ResponseEntity<Void> removePokemonFromTeam(@RequestBody String pokemonId, Authentication authentication){
-        System.out.println("Pokemon id: " + pokemonId)
+        System.out.println("Pokemon id: " + pokemonId);
         Trainer trainer = AuthUtils.getAuthenticatedTrainer(authentication);
         pokedexService.removePokemonFromTeam(trainer.getId(), pokemonId);
 
