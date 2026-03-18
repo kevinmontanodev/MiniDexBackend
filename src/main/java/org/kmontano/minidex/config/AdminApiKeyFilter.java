@@ -4,17 +4,16 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
-@Component
 public class AdminApiKeyFilter extends OncePerRequestFilter {
+    private final String adminKey;
 
-    @Value("${admin.api.key}")
-    private String adminKey;
+    public AdminApiKeyFilter(String adminKey) {
+        this.adminKey = adminKey;
+    }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -22,20 +21,23 @@ public class AdminApiKeyFilter extends OncePerRequestFilter {
                                     FilterChain filterChain)
             throws ServletException, IOException {
 
-        if (request.getRequestURI().startsWith("/api/") &&
-                request.getRequestURI().contains("/admin/")) {
+        String path = request.getRequestURI();
 
-            if (!request.getMethod().equals("POST")){
-                response.setStatus(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
-                return;
-            }
+        if (!path.startsWith("/api/") || !path.contains("/admin/")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
-            String key = request.getHeader("X-ADMIN-KEY");
+        if (!request.getMethod().equals("POST")){
+            response.setStatus(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
+            return;
+        }
 
-            if (!adminKey.equals(key)) {
-                response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                return;
-            }
+        String key = request.getHeader("X-ADMIN-KEY");
+
+        if (!adminKey.equals(key)) {
+            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            return;
         }
 
         filterChain.doFilter(request, response);

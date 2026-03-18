@@ -33,6 +33,9 @@ public class SecurityConfig {
     @Value("${api.version}")
     private String apiVersion;
 
+    @Value("${admin.api.key}")
+    private String adminKey;
+
     // Inyección del filtro JWT mediante constructor
     public SecurityConfig(JwtFilter jwtFilter) {
         this.jwtFilter = jwtFilter;
@@ -74,6 +77,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 // Agrega el filtro JWT antes del filtro de autenticación por usuario/contraseña
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(new AdminApiKeyFilter(adminKey), JwtFilter.class)
                 .build();
     }
 }
